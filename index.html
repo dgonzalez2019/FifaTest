@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gallery Grade Maximizer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a two-column workbench — set rules + collection on the left, the graded "display case" result on the right; stacks on phones. */
+:root {
+  --bg: #eef1f4;
+  --panel: #ffffff;
+  --ink: #15202e;
+  --muted: #5b6878;
+  --line: #d5dce4;
+  --accent: #1d5fd1;
+  --gold: #b8860b;
+  --good: #1f8a4c;
+  --warn: #b25e09;
+  --chip: #e6ecf3;
+  --grade-s: #b8860b; --grade-a: #1f8a4c; --grade-b: #1d5fd1; --grade-c: #7a5cc7; --grade-d: #6b7686;
+  --f-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f151d; --panel: #18212c; --ink: #e5ebf2; --muted: #95a3b4; --line: #2b3746;
+  --accent: #6d9ef0; --gold: #e2b33c; --good: #4cc27f; --warn: #e79a4a; --chip: #223040;
+  --grade-s: #e2b33c; --grade-a: #4cc27f; --grade-b: #6d9ef0; --grade-c: #a88cf0; --grade-d: #8995a5;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f151d; --panel: #18212c; --ink: #e5ebf2; --muted: #95a3b4; --line: #2b3746;
+  --accent: #6d9ef0; --gold: #e2b33c; --good: #4cc27f; --warn: #e79a4a; --chip: #223040;
+  --grade-s: #e2b33c; --grade-a: #4cc27f; --grade-b: #6d9ef0; --grade-c: #a88cf0; --grade-d: #8995a5;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; margin-bottom: 22px; }
+h1 { font: 800 clamp(2rem, 5vw, 3rem)/1 var(--f-display); letter-spacing: .01em; margin: 0; text-transform: uppercase; text-wrap: balance; }
+h1 span { color: var(--gold); }
+.lede { color: var(--muted); max-width: 62ch; margin: 6px 0 0; }
+h2 { font: 700 1.35rem/1.1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 12px; }
+h3 { font: 600 .78rem/1.2 var(--f-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 20px; min-width: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+label.f { display: grid; gap: 4px; font-size: .78rem; color: var(--muted); font-weight: 500; }
+input, select, textarea, button { font: inherit; color: var(--ink); }
+input[type=text], input[type=number], select, textarea {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; min-width: 0; }
+input[type=number] { width: 7.5em; font-family: var(--f-mono); }
+textarea { width: 100%; min-height: 120px; font: 13px/1.45 var(--f-mono); resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button { cursor: pointer; border-radius: 6px; padding: 8px 14px; border: 1px solid var(--line); background: var(--chip); font-weight: 500; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.ghost { background: transparent; }
+button.x { padding: 2px 8px; background: transparent; border: 0; color: var(--muted); font-size: 1.1rem; line-height: 1; }
+button.x:hover { color: var(--warn); }
+.thresholds { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.thresholds input { width: 100%; }
+.thresholds .g { font: 700 1rem var(--f-display); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .85rem; }
+.checks label { display: inline-flex; gap: 5px; align-items: center; }
+.note { font-size: .82rem; color: var(--muted); margin: 10px 0 0; }
+.tablebox { overflow-x: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 8px; max-height: 460px; overflow-y: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { position: sticky; top: 0; background: var(--panel); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); z-index: 1; }
+td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+tr.picked td { background: color-mix(in srgb, var(--gold) 12%, transparent); }
+.pill { display: inline-block; font: 500 .7rem/1 var(--f-body); padding: 3px 6px; border-radius: 4px; background: var(--chip); color: var(--muted); margin-right: 3px; }
+.pill.fo { color: var(--gold); }
+.pill.holo { color: var(--accent); }
+.result { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 900px) { .result { position: static; } }
+.case { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; }
+.grade { width: 108px; height: 124px; display: grid; place-items: center; border-radius: 10px; font: 800 5.4rem/1 var(--f-display);
+  color: var(--panel); background: var(--grade-d); clip-path: polygon(0 0, 100% 0, 100% 82%, 50% 100%, 0 82%); }
+.grade[data-g="S"] { background: var(--grade-s); } .grade[data-g="A"] { background: var(--grade-a); }
+.grade[data-g="B"] { background: var(--grade-b); } .grade[data-g="C"] { background: var(--grade-c); }
+.grade[data-g="—"] { background: var(--line); color: var(--muted); }
+.total { font: 700 2.2rem/1 var(--f-mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.sub { color: var(--muted); font-size: .85rem; font-family: var(--f-mono); }
+.bar { height: 8px; border-radius: 4px; background: var(--chip); margin-top: 10px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--gold); width: 0; transition: width .4s; }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+.taglist { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: .85rem; }
+.taglist li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.taglist b { font-family: var(--f-mono); color: var(--good); font-weight: 500; }
+.section { margin-top: 16px; }
+.status { font-size: .82rem; color: var(--muted); min-height: 1.2em; }
+.example { font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--warn); }
+details summary { cursor: pointer; font-weight: 500; }
+.flags { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .82rem; }
+.flags label { display: inline-flex; gap: 4px; align-items: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Gallery Grade <span>Maximizer</span></h1>
+      <p class="lede">Enter the Gallery-eligible players you own for an EA FC 27 Ultimate Team Set. The optimizer picks the combination that scores highest after Item Scores and Gallery Tag bonuses, and tells you the best grade you can reach.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-labelledby="set-h">
+        <h2 id="set-h">1 · The Set</h2>
+        <div class="row">
+          <label class="f">Preset
+            <select id="preset">
+              <option value="starter">Starter Set</option>
+              <option value="pl">Premier League</option>
+              <option value="custom">Custom Set</option>
+            </select>
+          </label>
+          <label class="f">Max players in Set
+            <input type="number" id="slots" min="1" max="60" value="5">
+          </label>
+        </div>
+        <h3 class="section">Score needed for each grade</h3>
+        <div class="thresholds">
+          <label class="f"><span class="g">D</span><input type="number" id="t-D" min="0"></label>
+          <label class="f"><span class="g">C</span><input type="number" id="t-C" min="0"></label>
+          <label class="f"><span class="g">B</span><input type="number" id="t-B" min="0"></label>
+          <label class="f"><span class="g">A</span><input type="number" id="t-A" min="0"></label>
+          <label class="f"><span class="g">S</span><input type="number" id="t-S" min="0"></label>
+        </div>
+        <p class="note">Each Set has its own thresholds and size. Starter and Premier League values come from community guides; copy the exact numbers from the Set screen in-game for anything else.</p>
+        <details class="section">
+          <summary>Unlocked Gallery Tags</summary>
+          <p class="note">A Tag only adds its bonus after you have unlocked it once. Untick any you haven't unlocked.</p>
+          <div class="checks" id="tagchecks"></div>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="col-h">
+        <div class="row" style="justify-content: space-between; align-items: center;">
+          <h2 id="col-h" style="margin:0">2 · Your eligible players</h2>
+          <span class="example" id="example-flag">Example data</span>
+        </div>
+        <form id="addform" class="section" autocomplete="off">
+          <div class="row">
+            <label class="f" style="flex:1 1 140px">Name<input type="text" id="a-name" required></label>
+            <label class="f">OVR<input type="number" id="a-ovr" min="40" max="99" value="84" required style="width:5em"></label>
+            <label class="f">Position
+              <select id="a-pos"><option>ATT</option><option>MID</option><option>DEF</option><option>GK</option></select>
+            </label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="f" style="flex:1 1 110px">League<input type="text" id="a-league"></label>
+            <label class="f" style="flex:1 1 110px">Club<input type="text" id="a-club"></label>
+            <label class="f" style="flex:1 1 110px">Nation<input type="text" id="a-nation"></label>
+          </div>
+          <div class="row" style="margin-top:8px; justify-content: space-between">
+            <div class="flags">
+              <label><input type="checkbox" id="a-fo"> First Owner</label>
+              <label><input type="checkbox" id="a-totw"> TOTW</label>
+              <label><input type="checkbox" id="a-holo"> Holographic</label>
+              <label><input type="checkbox" id="a-hero"> Hero</label>
+              <label><input type="checkbox" id="a-icon"> Icon</label>
+              <label><input type="checkbox" id="a-sm5"> 5★ skills</label>
+              <label><input type="checkbox" id="a-wf5"> 5★ weak foot</label>
+            </div>
+            <label class="f">In-game Item Score (optional)<input type="number" id="a-score" min="0" placeholder="auto"></label>
+          </div>
+          <div class="row" style="margin-top:10px"><button class="primary" type="submit">Add player</button>
+            <button type="button" class="ghost" id="clear">Remove all</button>
+            <button type="button" class="ghost" id="loadsample">Load example</button></div>
+        </form>
+        <div class="tablebox">
+          <table>
+            <thead><tr><th>Name</th><th class="num">OVR</th><th>Pos</th><th>League / Club / Nation</th><th>Tags</th><th class="num">Score</th><th></th></tr></thead>
+            <tbody id="items"></tbody>
+          </table>
+        </div>
+        <details class="section">
+          <summary>Bulk import / export (CSV)</summary>
+          <p class="note">One player per line: <code>name,ovr,pos,league,club,nation,flags,score</code>. Flags are separated by <code>|</code> from: fo, totw, holo, hero, icon, sm5, wf5. Score is optional.</p>
+          <textarea id="csv" spellcheck="false"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button type="button" id="import">Replace with CSV</button>
+            <button type="button" id="append">Append CSV</button>
+            <button type="button" class="ghost" id="export">Show current as CSV</button>
+          </div>
+          <p class="status" id="csvstatus"></p>
+        </details>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel result" aria-labelledby="res-h" aria-live="polite">
+        <h2 id="res-h">Best possible grade</h2>
+        <div class="case">
+          <div class="grade" id="grade" data-g="—">—</div>
+          <div style="min-width:0">
+            <div class="total" id="total">0</div>
+            <div class="sub" id="breakdown">base 0 + bonus 0</div>
+            <div class="bar"><i id="bar"></i></div>
+            <div class="sub" id="next" style="margin-top:6px"></div>
+          </div>
+        </div>
+        <h3 class="section">Active Gallery Tags</h3>
+        <ul class="taglist" id="tags"></ul>
+        <h3 class="section">Players to submit</h3>
+        <div class="tablebox" style="max-height:none">
+          <table><thead><tr><th>Name</th><th class="num">OVR</th><th>Pos</th><th class="num">Score</th></tr></thead><tbody id="picked"></tbody></table>
+        </div>
+        <p class="note">Total = sum of Item Scores × (1 + sum of active Tag bonuses). Item Scores use the community Streamlined SBC table by OVR. EA hasn't published promo or Holographic bonuses, so enter the in-game Item Score for those cards to get an exact result.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const GRADES = ["D", "C", "B", "A", "S"];
+const PRESETS = {
+  starter: { slots: 5, t: { D: 10, C: 250, B: 500, A: 1000, S: 2000 } },
+  pl: { slots: 23, t: { D: 10, C: 400000, B: 800000, A: 1900000, S: 4000000 } },
+};
+const GOLD_SCORE = { 75: 90, 76: 100, 77: 120, 78: 140, 79: 160, 80: 180, 81: 280, 82: 340, 83: 410, 84: 830, 85: 2100, 86: 4100, 87: 5500,
+  88: 8300, 89: 11000, 90: 14000, 91: 19000, 92: 20000, 93: 25000, 94: 30000, 95: 40000, 96: 55000, 97: 85000, 98: 90000, 99: 100000 };
+
+const rarity = it => it.ovr >= 75 ? "gold" : it.ovr >= 65 ? "silver" : "bronze";
+const itemScore = it => it.score > 0 ? it.score : it.ovr >= 75 ? GOLD_SCORE[Math.min(99, it.ovr)] : it.ovr >= 65 ? 35 : 20;
+
+const countBy = (set, key) => { const m = new Map(); for (const it of set) { const k = (it[key] || "").trim().toLowerCase(); if (k) m.set(k, (m.get(k) || 0) + 1); } return m; };
+const maxOf = m => m.size ? Math.max(...m.values()) : 0;
+const n = (set, f) => set.reduce((c, it) => c + (f(it) ? 1 : 0), 0);
+
+// Tier lists are [minimum count, bonus %]; values from community-compiled FC 27 tag tables.
+const TAGS = [
+  { id: "att", name: "All Out Attack", tiers: [[5, 3], [10, 6], [20, 10]], count: s => n(s, i => i.pos === "ATT") },
+  { id: "mid", name: "Midfield Control", tiers: [[5, 3], [10, 6], [20, 10]], count: s => n(s, i => i.pos === "MID") },
+  { id: "def", name: "Defensive Wall", tiers: [[5, 3], [10, 6], [20, 10]], count: s => n(s, i => i.pos === "DEF") },
+  { id: "sm5", name: "Skilled", tiers: [[3, 3], [6, 6], [10, 12]], count: s => n(s, i => i.sm5) },
+  { id: "wf5", name: "Ambidextrous", tiers: [[3, 3], [6, 6], [10, 12]], count: s => n(s, i => i.wf5) },
+  { id: "mult", name: "Multiples", tiers: [[2, 10], [3, 15], [4, 20]], count: s => maxOf(countBy(s, "name")) },
+  { id: "gk", name: "Hands Only", tiers: [[3, 3], [6, 6], [10, 15]], count: s => n(s, i => i.pos === "GK") },
+  { id: "fo", name: "First Owner", tiers: [[5, 150], [10, 300], [20, 500]], count: s => n(s, i => i.fo) },
+  { id: "totw", name: "TOTW", tiers: [[3, 4], [6, 8], [10, 15]], count: s => n(s, i => i.totw) },
+  { id: "holo", name: "Holographic", tiers: [[2, 8], [4, 12], [6, 20]], count: s => n(s, i => i.holo) },
+  { id: "gold", name: "Golden", tiers: [[5, 1], [10, 2], [20, 4]], count: s => n(s, i => rarity(i) === "gold") },
+  { id: "silver", name: "Silver", tiers: [[5, 15], [10, 30], [20, 60]], count: s => n(s, i => rarity(i) === "silver") },
+  { id: "bronze", name: "Bronze", tiers: [[5, 20], [10, 40], [20, 80]], count: s => n(s, i => rarity(i) === "bronze") },
+  { id: "dleague", name: "Different League", tiers: [[5, 1], [10, 2], [20, 4]], count: s => countBy(s, "league").size },
+  { id: "dclub", name: "Different Club", tiers: [[5, 1], [10, 2], [20, 4]], count: s => countBy(s, "club").size },
+  { id: "dnation", name: "Different Nation", tiers: [[5, 1], [10, 2], [20, 4]], count: s => countBy(s, "nation").size },
+  { id: "sleague", name: "Same League", tiers: [[5, 1], [10, 2], [20, 8]], count: s => maxOf(countBy(s, "league")) },
+  { id: "sclub", name: "Same Club", tiers: [[5, 1], [10, 2], [20, 4]], count: s => maxOf(countBy(s, "club")) },
+  { id: "snation", name: "Same Nation", tiers: [[5, 1], [10, 2], [20, 4]], count: s => maxOf(countBy(s, "nation")) },
+  { id: "hero", name: "Heroic", tiers: [[2, 8], [4, 12], [6, 20]], count: s => n(s, i => i.hero) },
+  { id: "icon", name: "Iconic", tiers: [[2, 10], [4, 15], [6, 25]], count: s => n(s, i => i.icon) },
+];
+
+function evaluate(set, unlocked) {
+  const base = set.reduce((a, it) => a + itemScore(it), 0);
+  let pct = 0; const active = [];
+  for (const t of TAGS) {
+    if (!unlocked.has(t.id)) continue;
+    const c = t.count(set);
+    let got = 0;
+    for (const [min, p] of t.tiers) if (c >= min) got = p;
+    if (got) { pct += got; active.push({ name: t.name, count: c, pct: got }); }
+  }
+  const bonus = Math.round(base * pct / 100);
+  return { base, bonus, total: base + bonus, pct, active };
+}
+
+// Local search: start from several seeds (one per Tag tier, filled with the best matching players,
+// plus randomised greedy fills), complete each greedily, then apply best-improvement swaps.
+// Tier jumps like 17 -> 20 First Owner need several swaps at once, which is why the seeds matter.
+// Adding a player never lowers the score, so every run fills all slots it can.
+const PREDS = { att: i => i.pos === "ATT", mid: i => i.pos === "MID", def: i => i.pos === "DEF", gk: i => i.pos === "GK",
+  sm5: i => i.sm5, wf5: i => i.wf5, fo: i => i.fo, totw: i => i.totw, holo: i => i.holo, hero: i => i.hero, icon: i => i.icon,
+  gold: i => rarity(i) === "gold", silver: i => rarity(i) === "silver", bronze: i => rarity(i) === "bronze" };
+const GROUPS = { sleague: "league", sclub: "club", snation: "nation", mult: "name" };
+
+const FLAG_IDS = Object.keys(PREDS);
+const GROUP_KEYS = ["league", "club", "nation", "name"];
+const DISTINCT = { dleague: "league", dclub: "club", dnation: "nation" };
+
+// Incremental counters so adding/removing one player and re-scoring is O(number of Tags).
+// Must agree with evaluate(); the final result is always re-scored with evaluate().
+function makeScorer(items, unlocked) {
+  const sc = items.map(itemScore);
+  const flags = items.map(it => FLAG_IDS.map(f => PREDS[f](it) ? 1 : 0));
+  const gid = GROUP_KEYS.map(key => {
+    const ids = new Map();
+    return items.map(it => { const v = (it[key] || "").trim().toLowerCase(); if (!v) return -1;
+      if (!ids.has(v)) ids.set(v, ids.size); return ids.get(v); });
+  });
+  const tags = TAGS.filter(t => unlocked.has(t.id));
+  const nGroups = gid.map(col => Math.max(0, ...col) + 1);
+  const st = { base: 0, flag: new Int32Array(FLAG_IDS.length),
+    cnt: nGroups.map(n => new Int32Array(n)), distinct: new Int32Array(GROUP_KEYS.length),
+    hist: GROUP_KEYS.map(() => new Int32Array(items.length + 2)), max: new Int32Array(GROUP_KEYS.length) };
+  function bump(g, id, d) {
+    if (id < 0) return;
+    const m = st.cnt[g], h = st.hist[g], c = m[id], c2 = c + d;
+    m[id] = c2; h[c]--; h[c2]++;
+    if (c === 0) st.distinct[g]++; if (c2 === 0) st.distinct[g]--;
+    if (c2 > st.max[g]) st.max[g] = c2;
+    else if (d < 0 && c === st.max[g] && !h[c]) st.max[g] = c2;
+  }
+  const change = (i, d) => {
+    st.base += d * sc[i];
+    const fl = flags[i];
+    for (let f = 0; f < fl.length; f++) if (fl[f]) st.flag[f] += d;
+    for (let g = 0; g < GROUP_KEYS.length; g++) bump(g, gid[g][i], d);
+  };
+  const counters = tags.map(t => {
+    const f = FLAG_IDS.indexOf(t.id);
+    if (f >= 0) return [t.tiers, () => st.flag[f]];
+    if (DISTINCT[t.id]) { const g = GROUP_KEYS.indexOf(DISTINCT[t.id]); return [t.tiers, () => st.distinct[g]]; }
+    const g = GROUP_KEYS.indexOf(GROUPS[t.id]); return [t.tiers, () => st.max[g]];
+  });
+  const total = () => {
+    let pct = 0;
+    for (let q = 0; q < counters.length; q++) {
+      const tiers = counters[q][0], v = counters[q][1]();
+      for (let x = tiers.length - 1; x >= 0; x--) if (v >= tiers[x][0]) { pct += tiers[x][1]; break; }
+    }
+    return st.base + Math.round(st.base * pct / 100);
+  };
+  return { add: i => change(i, 1), remove: i => change(i, -1), total };
+}
+
+function optimize(items, slots, unlocked) {
+  const k = Math.min(slots, items.length);
+  if (!k) return { set: [], ...evaluate([], unlocked) };
+  const byScore = items.map((_, i) => i).sort((a, b) => itemScore(items[b]) - itemScore(items[a]));
+
+  const seeds = [[]];
+  if (items.length > k) {
+    const seen = new Set();
+    for (const t of TAGS) {
+      if (!unlocked.has(t.id)) continue;
+      const pools = [];
+      if (PREDS[t.id]) pools.push(byScore.filter(i => PREDS[t.id](items[i])));
+      if (GROUPS[t.id]) {
+        const g = new Map();
+        for (const i of byScore) { const v = (items[i][GROUPS[t.id]] || "").trim().toLowerCase(); if (v) (g.get(v) || g.set(v, []).get(v)).push(i); }
+        pools.push(...[...g.values()].sort((a, b) => b.length - a.length).slice(0, 3));
+      }
+      for (const pool of pools) for (const [min] of t.tiers) {
+        if (min > k || pool.length < min) continue;
+        const seed = pool.slice(0, min), key = seed.join(",");
+        if (!seen.has(key)) { seen.add(key); seeds.push(seed); }
+      }
+    }
+    for (let r = 0; r < 4; r++) seeds.push(null);
+  }
+
+  let best = null, bestScore = -1;
+  for (const seed of seeds) {
+    const S = makeScorer(items, unlocked), inSet = new Set();
+    for (const i of seed || []) { inSet.add(i); S.add(i); }
+    while (inSet.size < k) {
+      const cands = [];
+      for (let j = 0; j < items.length; j++) if (!inSet.has(j)) { S.add(j); cands.push([S.total(), j]); S.remove(j); }
+      cands.sort((a, b) => b[0] - a[0]);
+      const pick = seed ? cands[0][1] : cands[Math.floor(Math.random() * Math.min(3, cands.length))][1];
+      inSet.add(pick); S.add(pick);
+    }
+    const idx = [...inSet];
+    let curScore = S.total(), improved = true;
+    while (improved) {
+      improved = false;
+      let swap = null, swapScore = curScore;
+      for (let a = 0; a < idx.length; a++) {
+        S.remove(idx[a]);
+        for (let j = 0; j < items.length; j++) {
+          if (inSet.has(j)) continue;
+          S.add(j); const s = S.total(); S.remove(j);
+          if (s > swapScore) { swapScore = s; swap = [a, j]; }
+        }
+        S.add(idx[a]);
+      }
+      if (swap) {
+        const [a, j] = swap;
+        S.remove(idx[a]); S.add(j); inSet.delete(idx[a]); inSet.add(j); idx[a] = j;
+        curScore = swapScore; improved = true;
+      }
+    }
+    if (curScore > bestScore) { bestScore = curScore; best = idx.map(i => items[i]); }
+  }
+  best.sort((a, b) => itemScore(b) - itemScore(a));
+  return { set: best, ...evaluate(best, unlocked) };
+}
+
+// ---------- state ----------
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const SAMPLE_CSV = `Bukayo Saka,87,ATT,Premier League,Arsenal,England,fo|totw,
+Declan Rice,86,MID,Premier League,Arsenal,England,fo,
+Bruno Fernandes,86,MID,Premier League,Manchester Utd,Portugal,fo|sm5,
+Bruno Fernandes,88,MID,Premier League,Manchester Utd,Portugal,holo,
+Virgil van Dijk,89,DEF,Premier League,Liverpool,Netherlands,,
+Alisson,89,GK,Premier League,Liverpool,Brazil,fo,
+Jordan Pickford,82,GK,Premier League,Everton,England,fo,
+David Raya,84,GK,Premier League,Arsenal,Spain,fo,
+Cole Palmer,87,ATT,Premier League,Chelsea,England,totw|sm5,
+Jarrod Bowen,83,ATT,Premier League,West Ham,England,fo,
+Ollie Watkins,84,ATT,Premier League,Aston Villa,England,fo|totw,
+Bryan Mbeumo,82,ATT,Premier League,Manchester Utd,Cameroon,fo,
+Kieran Trippier,80,DEF,Premier League,Newcastle,England,fo,
+Joško Gvardiol,85,DEF,Premier League,Manchester City,Croatia,fo,
+Rodri,90,MID,Premier League,Manchester City,Spain,,
+Erling Haaland,91,ATT,Premier League,Manchester City,Norway,fo,
+Mohamed Salah,90,ATT,Premier League,Liverpool,Egypt,,
+Son Heung Min,84,ATT,Premier League,Tottenham,Korea Republic,wf5|fo,
+Thierry Henry,91,ATT,Premier League,Arsenal,France,icon,
+Ji-Sung Park,87,MID,Premier League,Manchester Utd,Korea Republic,hero|fo,
+Mikel Merino,81,MID,Premier League,Arsenal,Spain,fo,
+Morgan Gibbs-White,82,MID,Premier League,Nottm Forest,England,fo,
+Jack Grealish,81,MID,Premier League,Everton,England,sm5|fo,
+Marc Guéhi,83,DEF,Premier League,Crystal Palace,England,fo,
+Pedro Porro,82,DEF,Premier League,Tottenham,Spain,fo,
+Tyrick Mitchell,76,DEF,Premier League,Crystal Palace,England,fo,`;
+
+let items = store.get("gg.items");
+let isExample = !items;
+if (!items) items = parseCSV(SAMPLE_CSV).items;
+
+function parseCSV(text) {
+  const out = [], errors = [];
+  text.split(/\r?\n/).forEach((line, i) => {
+    if (!line.trim() || /^name\s*,/i.test(line)) return;
+    const c = line.split(",").map(s => s.trim());
+    const ovr = parseInt(c[1], 10);
+    if (!c[0] || !(ovr >= 40 && ovr <= 99)) { errors.push(i + 1); return; }
+    const flags = new Set((c[6] || "").toLowerCase().split("|").map(s => s.trim()));
+    const pos = (c[2] || "").toUpperCase();
+    out.push({ id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()), name: c[0], ovr,
+      pos: ["ATT", "MID", "DEF", "GK"].includes(pos) ? pos : "MID",
+      league: c[3] || "", club: c[4] || "", nation: c[5] || "",
+      fo: flags.has("fo"), totw: flags.has("totw"), holo: flags.has("holo"), hero: flags.has("hero"),
+      icon: flags.has("icon"), sm5: flags.has("sm5"), wf5: flags.has("wf5"), score: parseInt(c[7], 10) || 0 });
+  });
+  return { items: out, errors };
+}
+function toCSV(list) {
+  return list.map(it => [it.name, it.ovr, it.pos, it.league, it.club, it.nation,
+    ["fo", "totw", "holo", "hero", "icon", "sm5", "wf5"].filter(f => it[f]).join("|"), it.score || ""].join(",")).join("\n");
+}
+
+const savedSet = store.get("gg.set");
+const unlocked = new Set(store.get("gg.unlocked") || TAGS.map(t => t.id));
+
+function applyPreset(key) {
+  const p = PRESETS[key]; if (!p) return;
+  $("slots").value = p.slots;
+  for (const g of GRADES) $("t-" + g).value = p.t[g];
+}
+if (savedSet) {
+  $("preset").value = savedSet.preset; $("slots").value = savedSet.slots;
+  for (const g of GRADES) $("t-" + g).value = savedSet.t[g];
+} else { $("preset").value = "pl"; applyPreset("pl"); }
+
+$("tagchecks").innerHTML = TAGS.map(t =>
+  `<label><input type="checkbox" id="tag-${t.id}" data-tag="${t.id}" ${unlocked.has(t.id) ? "checked" : ""}> ${t.name}</label>`).join("");
+
+const fmt = x => Math.round(x).toLocaleString("en-US");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pills = it => [it.fo && '<span class="pill fo">First Owner</span>', it.holo && '<span class="pill holo">Holo</span>',
+  it.totw && '<span class="pill">TOTW</span>', it.hero && '<span class="pill">Hero</span>', it.icon && '<span class="pill">Icon</span>',
+  it.sm5 && '<span class="pill">5★SM</span>', it.wf5 && '<span class="pill">5★WF</span>'].filter(Boolean).join("");
+
+function persist() {
+  if (!isExample) store.set("gg.items", items);
+  store.set("gg.set", { preset: $("preset").value, slots: +$("slots").value, t: Object.fromEntries(GRADES.map(g => [g, +$("t-" + g).value])) });
+  store.set("gg.unlocked", [...unlocked]);
+}
+
+let lastKey = null, lastRes = null;
+function render() {
+  $("example-flag").hidden = !isExample;
+  const slots = Math.max(1, +$("slots").value || 1);
+  const th = Object.fromEntries(GRADES.map(g => [g, +$("t-" + g).value || 0]));
+  const key = JSON.stringify([items, slots, [...unlocked].sort()]);
+  if (key !== lastKey) { lastRes = optimize(items, slots, unlocked); lastKey = key; }
+  const res = lastRes;
+  const pickedIds = new Set(res.set.map(i => i.id));
+
+  $("items").innerHTML = items.length ? items.map(it => `<tr class="${pickedIds.has(it.id) ? "picked" : ""}">
+    <td>${esc(it.name)}</td><td class="num">${it.ovr}</td><td>${it.pos}</td>
+    <td>${esc([it.league, it.club, it.nation].filter(Boolean).join(" · "))}</td><td>${pills(it)}</td>
+    <td class="num">${fmt(itemScore(it))}</td>
+    <td><button class="x" data-del="${it.id}" aria-label="Remove ${esc(it.name)}">×</button></td></tr>`).join("")
+    : `<tr><td colspan="7" style="color:var(--muted)">No players yet. Add the eligible players you own above, or paste a CSV.</td></tr>`;
+
+  let grade = "—";
+  for (const g of GRADES) if (res.total >= th[g] && th[g] > 0) grade = g;
+  $("grade").textContent = grade; $("grade").dataset.g = grade;
+  $("total").textContent = fmt(res.total);
+  $("breakdown").textContent = `base ${fmt(res.base)} + bonus ${fmt(res.bonus)} (+${res.pct}%) · ${res.set.length}/${slots} players`;
+  const nextG = GRADES.find(g => th[g] > res.total);
+  const target = th.S || 1;
+  $("bar").style.width = Math.min(100, res.total / target * 100) + "%";
+  $("next").textContent = !items.length ? "" : nextG
+    ? `${fmt(th[nextG] - res.total)} more points for grade ${nextG}`
+    : "Top grade reached.";
+  $("tags").innerHTML = res.active.length ? res.active.sort((a, b) => b.pct - a.pct)
+    .map(a => `<li><span>${a.name} <span class="sub">(${a.count})</span></span><b>+${a.pct}%</b></li>`).join("")
+    : `<li><span class="sub">No Tags active</span></li>`;
+  $("picked").innerHTML = res.set.map(it => `<tr><td>${esc(it.name)} ${pills(it)}</td><td class="num">${it.ovr}</td><td>${it.pos}</td><td class="num">${fmt(itemScore(it))}</td></tr>`).join("");
+  persist();
+}
+
+function takeOwnership() { if (isExample) { isExample = false; } }
+
+$("preset").addEventListener("change", e => { applyPreset(e.target.value); render(); });
+["slots", ...GRADES.map(g => "t-" + g)].forEach(id => $(id).addEventListener("change", () => {
+  if (id !== "slots") $("preset").value = "custom"; render(); }));
+$("tagchecks").addEventListener("change", e => {
+  const t = e.target.dataset.tag; if (!t) return;
+  e.target.checked ? unlocked.add(t) : unlocked.delete(t); render(); });
+$("addform").addEventListener("submit", e => {
+  e.preventDefault();
+  if (isExample) { items = []; takeOwnership(); }
+  items.push({ id: crypto.randomUUID ? crypto.randomUUID() : String(Math.random()),
+    name: $("a-name").value.trim(), ovr: Math.max(40, Math.min(99, +$("a-ovr").value)), pos: $("a-pos").value,
+    league: $("a-league").value.trim(), club: $("a-club").value.trim(), nation: $("a-nation").value.trim(),
+    fo: $("a-fo").checked, totw: $("a-totw").checked, holo: $("a-holo").checked, hero: $("a-hero").checked,
+    icon: $("a-icon").checked, sm5: $("a-sm5").checked, wf5: $("a-wf5").checked, score: +$("a-score").value || 0 });
+  $("a-name").value = ""; $("a-score").value = "";
+  ["fo", "totw", "holo", "hero", "icon", "sm5", "wf5"].forEach(f => $("a-" + f).checked = false);
+  $("a-name").focus();
+  render();
+});
+$("items").addEventListener("click", e => {
+  const id = e.target.dataset.del; if (!id) return;
+  takeOwnership(); items = items.filter(i => i.id !== id); render(); });
+$("clear").addEventListener("click", () => { takeOwnership(); items = []; render(); });
+$("loadsample").addEventListener("click", () => { items = parseCSV(SAMPLE_CSV).items; isExample = true;
+  try { localStorage.removeItem("gg.items"); } catch {} render(); });
+function importCSV(append) {
+  const { items: parsed, errors } = parseCSV($("csv").value);
+  if (!parsed.length) { $("csvstatus").textContent = "No valid rows found. Each line needs at least a name and an OVR between 40 and 99."; return; }
+  if (isExample || !append) items = [];
+  takeOwnership(); items.push(...parsed);
+  $("csvstatus").textContent = `Imported ${parsed.length} players.` + (errors.length ? ` Skipped line ${errors.join(", ")}: missing name or invalid OVR.` : "");
+  render();
+}
+$("import").addEventListener("click", () => importCSV(false));
+$("append").addEventListener("click", () => importCSV(true));
+$("export").addEventListener("click", () => { $("csv").value = toCSV(items); $("csvstatus").textContent = `${items.length} players shown above. Copy them to keep a backup.`; });
+
+render();
+</script>
+</body>
+</html>
