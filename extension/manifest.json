@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Gallery Grade Club Recorder",
+  "version": "0.1.0",
+  "description": "Records the players in your EA FC 27 Ultimate Team club, including First Owner and sold cards, for the Gallery Grade Maximizer.",
+  "permissions": ["storage"],
+  "action": { "default_popup": "popup.html", "default_title": "Gallery Grade Club Recorder" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.ea.com/*web-app*"],
+      "js": ["hook.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.ea.com/*web-app*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

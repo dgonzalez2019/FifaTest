@@ -127,6 +127,12 @@ details summary { cursor: pointer; font-weight: 500; }
             <input type="number" id="slots" min="1" max="60" value="5">
           </label>
         </div>
+        <h3 class="section">Only players from</h3>
+        <div class="row">
+          <label class="f" style="flex:1 1 140px">League<select id="f-league"></select></label>
+          <label class="f" style="flex:1 1 140px">Club<select id="f-club"></select></label>
+          <label class="f" style="flex:1 1 140px">Nation<select id="f-nation"></select></label>
+        </div>
         <h3 class="section">Score needed for each grade</h3>
         <div class="thresholds">
           <label class="f"><span class="g">D</span><input type="number" id="t-D" min="0"></label>
@@ -185,6 +191,7 @@ details summary { cursor: pointer; font-weight: 500; }
         </div>
         <details class="section">
           <summary>Bulk import / export (CSV)</summary>
+          <p class="note">Recording your club with the Gallery Grade Club Recorder extension? Paste what it copied here and press Replace with CSV, then pick the Set's league, club or nation above.</p>
           <p class="note">One player per line: <code>name,ovr,pos,league,club,nation,flags,score</code>. Flags are separated by <code>|</code> from: fo, totw, holo, hero, icon, sm5, wf5. Score is optional.</p>
           <textarea id="csv" spellcheck="false"></textarea>
           <div class="row" style="margin-top:8px">
@@ -483,15 +490,41 @@ function persist() {
   if (!isExample) store.set("gg.items", items);
   store.set("gg.set", { preset: $("preset").value, slots: +$("slots").value, t: Object.fromEntries(GRADES.map(g => [g, +$("t-" + g).value])) });
   store.set("gg.unlocked", [...unlocked]);
+  store.set("gg.filter", Object.fromEntries(FILTERS.map(k => [k, $("f-" + k).value])));
 }
 
+const FILTERS = ["league", "club", "nation"];
+const norm = v => (v || "").trim().toLowerCase();
+function renderFilters() {
+  for (const key of FILTERS) {
+    const sel = $("f-" + key), cur = sel.value || (store.get("gg.filter") || {})[key] || "";
+    const groups = new Map();
+    for (const it of items) {
+      const v = norm(it[key]); if (!v) continue;
+      if (!groups.has(v)) groups.set(v, { label: it[key].trim(), names: [] });
+      groups.get(v).names.push(it);
+    }
+    const opts = [...groups.entries()].sort((a, b) => b[1].names.length - a[1].names.length).map(([v, g]) => {
+      const top = g.names.sort((a, b) => b.ovr - a.ovr).slice(0, 2).map(i => i.name).join(", ");
+      return `<option value="${esc(v)}">${esc(g.label)} (${g.names.length}: ${esc(top)})</option>`;
+    });
+    sel.innerHTML = `<option value="">Any</option>` + opts.join("");
+    sel.value = groups.has(cur) ? cur : "";
+  }
+}
+const eligible = () => {
+  const f = Object.fromEntries(FILTERS.map(k => [k, $("f-" + k).value]));
+  return items.filter(it => FILTERS.every(k => !f[k] || norm(it[k]) === f[k]));
+};
 let lastKey = null, lastRes = null;
 function render() {
   $("example-flag").hidden = !isExample;
+  renderFilters();
   const slots = Math.max(1, +$("slots").value || 1);
   const th = Object.fromEntries(GRADES.map(g => [g, +$("t-" + g).value || 0]));
-  const key = JSON.stringify([items, slots, [...unlocked].sort()]);
-  if (key !== lastKey) { lastRes = optimize(items, slots, unlocked); lastKey = key; }
+  const pool = eligible();
+  const key = JSON.stringify([pool, slots, [...unlocked].sort()]);
+  if (key !== lastKey) { lastRes = optimize(pool, slots, unlocked); lastKey = key; }
   const res = lastRes;
   const pickedIds = new Set(res.set.map(i => i.id));
 
@@ -506,7 +539,7 @@ function render() {
   for (const g of GRADES) if (res.total >= th[g] && th[g] > 0) grade = g;
   $("grade").textContent = grade; $("grade").dataset.g = grade;
   $("total").textContent = fmt(res.total);
-  $("breakdown").textContent = `base ${fmt(res.base)} + bonus ${fmt(res.bonus)} (+${res.pct}%) · ${res.set.length}/${slots} players`;
+  $("breakdown").textContent = `base ${fmt(res.base)} + bonus ${fmt(res.bonus)} (+${res.pct}%) · ${res.set.length}/${slots} players from ${pool.length} eligible`;
   const nextG = GRADES.find(g => th[g] > res.total);
   const target = th.S || 1;
   $("bar").style.width = Math.min(100, res.total / target * 100) + "%";
@@ -525,6 +558,7 @@ function takeOwnership() { if (isExample) { isExample = false; } }
 $("preset").addEventListener("change", e => { applyPreset(e.target.value); render(); });
 ["slots", ...GRADES.map(g => "t-" + g)].forEach(id => $(id).addEventListener("change", () => {
   if (id !== "slots") $("preset").value = "custom"; render(); }));
+FILTERS.forEach(k => $("f-" + k).addEventListener("change", render));
 $("tagchecks").addEventListener("change", e => {
   const t = e.target.dataset.tag; if (!t) return;
   e.target.checked ? unlocked.add(t) : unlocked.delete(t); render(); });

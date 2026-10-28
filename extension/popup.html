@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --bg: #ffffff; --ink: #15202e; --muted: #5b6878; --line: #d5dce4; --accent: #1d5fd1; --gold: #b8860b; --warn: #b25e09; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #18212c; --ink: #e5ebf2; --muted: #95a3b4; --line: #2b3746; --accent: #6d9ef0; --gold: #e2b33c; --warn: #e79a4a; } }
+  body { margin: 0; width: 320px; padding: 14px; background: var(--bg); color: var(--ink); font: 13px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 15px; margin: 0 0 8px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .stat { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 11px; }
+  button { display: block; width: 100%; margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  p { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+  #msg { color: var(--gold); min-height: 1.2em; }
+  #msg.err { color: var(--warn); }
+  textarea { width: 100%; height: 70px; margin-top: 6px; font: 11px monospace; box-sizing: border-box; }
+</style>
+</head>
+<body>
+  <h1>Gallery Grade Club Recorder</h1>
+  <div class="stats">
+    <div class="stat"><b id="n">0</b><span>players recorded</span></div>
+    <div class="stat"><b id="fo">0</b><span>First Owner</span></div>
+  </div>
+  <p id="updated">Nothing recorded yet. Open the FC 27 Web App and go to Club &gt; Players.</p>
+  <button class="primary" id="copy">Copy players for the site</button>
+  <button id="scan">Scan whole club</button>
+  <button id="sample">Copy one raw card (for troubleshooting)</button>
+  <button id="clear">Delete recorded players</button>
+  <p id="msg" role="status"></p>
+  <textarea id="fallback" hidden readonly></textarea>
+  <p>Paste into the Gallery Grade Maximizer under Bulk import / export, then press Replace with CSV.</p>
+  <script src="popup.js"></script>
+</body>
+</html>
